@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-display: "Fraunces", serif;
+  --color-ink-50: #f4f3ee;
+  --color-ink-100: #e7e3d7;
+  --color-ink-200: #cfc7b6;
+  --color-ink-300: #b4a78e;
+  --color-ink-400: #8b7d64;
+  --color-ink-500: #625840;
+  --color-ink-600: #4b4536;
+  --color-ink-700: #353228;
+  --color-ink-800: #24231d;
+  --color-ink-900: #161713;
+  --color-sage-50: #f4f7f1;
+  --color-sage-100: #e5ecdf;
+  --color-sage-200: #cad9c0;
+  --color-sage-300: #a7be97;
+  --color-sage-400: #7f9c6b;
+  --color-sage-500: #5d7d49;
+  --color-sage-600: #49623b;
+  --color-sage-700: #394e31;
+  --color-sage-800: #2d3d28;
+  --color-sage-900: #1d291b;
+  --color-coral-400: #f58a6a;
+  --color-coral-500: #eb6d45;
+  --color-coral-600: #d5552c;
+  --color-gold-300: #eec75c;
+  --color-gold-400: #dfb13b;
+  --color-sky-300: #8ab5d8;
+  --color-sky-400: #5f96c4;
+}
+
+:root {
+  color: #161713;
+  background: linear-gradient(180deg, #f7f4ed 0%, #f1ece2 100%);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root.dark {
+  color: #f7f4eb;
+  background: linear-gradient(180deg, #171813 0%, #1d2019 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(235, 109, 69, 0.24);
+}
+
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image:
+    linear-gradient(transparent 0%, rgba(255, 255, 255, 0.08) 100%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, rgba(0, 0, 0, 0.06) 0 1px, transparent 1px);
+  background-size: auto, 12px 12px, 16px 16px;
+}
+
+.dark .grain-overlay {
+  opacity: 0.04;
+}
+
+.markdown-body p {
+  margin: 0 0 0.85rem;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+}
+
+.markdown-body li + li {
+  margin-top: 0.35rem;
+}
