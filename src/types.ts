@@ -7,7 +7,7 @@ export const assignmentStatuses = [
 
 export const priorities = ['high', 'medium', 'low'] as const;
 
-export const themes = ['light', 'dark', 'system'] as const;
+export const themes = ['light', 'dark', 'ocean', 'forest', 'sunset', 'system'] as const;
 
 export type AssignmentStatus = (typeof assignmentStatuses)[number];
 export type Priority = (typeof priorities)[number];
@@ -52,14 +52,8 @@ export interface ImportRecord {
   success: boolean;
 }
 
-export interface UserProfile {
-  name: string;
-  termStartDate: string;
-  studyFocus: string;
-}
 
 export interface Settings {
-  profile: UserProfile;
   groqApiKey: string;
   groqModel: string;
   theme: ThemeMode;

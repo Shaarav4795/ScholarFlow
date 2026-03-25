@@ -41,11 +41,6 @@ export function createSeedData(): AppData {
     planner: [],
     imports: [],
     settings: {
-      profile: {
-        name: 'Scholar',
-        termStartDate: format(addDays(now, -28), 'yyyy-MM-dd'),
-        studyFocus: 'Make steady progress every day.',
-      },
       groqApiKey: '',
       groqModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
       theme: 'system',
@@ -62,11 +57,6 @@ export function normalizeData(data: AppData): AppData {
     planner: data.planner ?? [],
     imports: data.imports ?? [],
     settings: {
-      profile: {
-        name: data.settings?.profile?.name ?? 'Scholar',
-        termStartDate: data.settings?.profile?.termStartDate ?? format(new Date(), 'yyyy-MM-dd'),
-        studyFocus: data.settings?.profile?.studyFocus ?? '',
-      },
       groqApiKey: data.settings?.groqApiKey ?? '',
       groqModel:
         data.settings?.groqModel ?? 'meta-llama/llama-4-scout-17b-16e-instruct',

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "tailwind-theme-builder": {
+      "source": "jezweb/claude-skills",
+      "sourceType": "github",
+      "computedHash": "949b52dc40f5a199a38936d53d12ca9ba6f9aa771f425df17335d829463ddbbb"
+    }
+  }
+}

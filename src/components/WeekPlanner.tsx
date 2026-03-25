@@ -38,7 +38,7 @@ export function WeekPlanner(props: WeekPlannerProps) {
               className={`rounded-[2rem] border p-4 transition ${
                 snapshot.isDraggingOver
                   ? 'border-coral-500 bg-coral-500/8'
-                  : 'border-ink-200/70 bg-white/75 dark:border-white/10 dark:bg-white/6'
+                  : 'border-ink-200/70 bg-white/75 dark:border-ink-700 dark:bg-ink-900'
               }`}
             >
               <div className="mb-4 flex items-center gap-3">
@@ -47,7 +47,7 @@ export function WeekPlanner(props: WeekPlannerProps) {
                 </div>
                 <div>
                   <h3 className="font-display text-2xl text-ink-800 dark:text-ink-50">Backlog</h3>
-                  <p className="text-sm text-ink-500 dark:text-ink-200/70">
+                  <p className="text-sm text-ink-500 dark:text-ink-300">
                     Drag assignments onto the week to commit time for them.
                   </p>
                 </div>
@@ -64,7 +64,7 @@ export function WeekPlanner(props: WeekPlannerProps) {
                         className={`rounded-2xl border p-4 shadow-sm transition ${
                           dragSnapshot.isDragging
                             ? 'border-coral-500 bg-coral-500/10'
-                            : 'border-ink-200/70 bg-white/90 dark:border-white/10 dark:bg-ink-900/80'
+                            : 'border-ink-200/70 bg-white/90 dark:border-ink-700 dark:bg-ink-800'
                         }`}
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
@@ -73,19 +73,19 @@ export function WeekPlanner(props: WeekPlannerProps) {
                           >
                             {getPriorityMeta(assignment.priority).label}
                           </span>
-                          <span className="text-xs text-ink-500 dark:text-ink-200/70">
+                          <span className="text-xs text-ink-500 dark:text-ink-300">
                             Due {format(parseISO(assignment.dueDate), 'd MMM')}
                           </span>
                         </div>
                         <h4 className="font-semibold text-ink-800 dark:text-ink-50">{assignment.title}</h4>
-                        <p className="mt-1 text-sm text-ink-500 dark:text-ink-200/70">{assignment.subject}</p>
+                        <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">{assignment.subject}</p>
                       </article>
                     )}
                   </Draggable>
                 ))}
                 {provided.placeholder}
                 {unscheduledAssignments.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-ink-300/80 p-4 text-sm text-ink-500 dark:border-white/10 dark:text-ink-200/70">
+                  <div className="rounded-2xl border border-dashed border-ink-300/80 p-4 text-sm text-ink-500 dark:border-ink-700 dark:text-ink-300">
                     Everything is scheduled for this week. Nice work.
                   </div>
                 ) : null}
@@ -110,11 +110,11 @@ export function WeekPlanner(props: WeekPlannerProps) {
                     className={`min-h-48 rounded-[2rem] border p-4 transition ${
                       snapshot.isDraggingOver
                         ? 'border-sage-500 bg-sage-500/10'
-                        : 'border-ink-200/70 bg-white/75 dark:border-white/10 dark:bg-white/6'
+                        : 'border-ink-200/70 bg-white/75 dark:border-ink-700 dark:bg-ink-900'
                     }`}
                   >
                     <div className="mb-4">
-                      <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                      <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                         {format(day, 'EEE')}
                       </p>
                       <h3 className="font-display text-2xl text-ink-800 dark:text-ink-50">
@@ -138,10 +138,10 @@ export function WeekPlanner(props: WeekPlannerProps) {
                               className={`rounded-2xl border p-4 shadow-sm transition ${
                                 dragSnapshot.isDragging
                                   ? 'border-coral-500 bg-coral-500/10'
-                                  : 'border-ink-200/70 bg-white/90 dark:border-white/10 dark:bg-ink-900/80'
+                                  : 'border-ink-200/70 bg-white/90 dark:border-ink-700 dark:bg-ink-800'
                               }`}
                             >
-                              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-400 dark:text-ink-200/50">
+                              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-400 dark:text-ink-300">
                                 {assignment.subject}
                               </span>
                               <h4 className="mt-2 font-semibold text-ink-800 dark:text-ink-50">
@@ -153,7 +153,7 @@ export function WeekPlanner(props: WeekPlannerProps) {
                       ))}
                       {provided.placeholder}
                       {scheduledAssignments.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-ink-300/80 p-4 text-sm text-ink-500 dark:border-white/10 dark:text-ink-200/70">
+                        <div className="rounded-2xl border border-dashed border-ink-300/80 p-4 text-sm text-ink-500 dark:border-ink-700 dark:text-ink-300">
                           Drop work here.
                         </div>
                       ) : null}

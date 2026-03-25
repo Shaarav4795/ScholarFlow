@@ -43,11 +43,14 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { AssignmentDialog, type AssignmentFormValues } from '@/components/AssignmentDialog';
-import { AIImportPanel } from '@/components/AIImportPanel';
+import { AssignmentChoiceDialog } from '@/components/AssignmentChoiceDialog';
 import { AssignmentCard } from '@/components/AssignmentCard';
+import { CheckpointDialog, type CheckpointFormValues } from '@/components/CheckpointDialog';
 import { CalendarBoard } from '@/components/CalendarBoard';
 import { TourOverlay, type TourStep } from '@/components/TourOverlay';
 import { WeekPlanner } from '@/components/WeekPlanner';
+import { ThemeProvider, useTheme } from '@/components/theme-provider';
+import { ThemeSelector } from '@/components/theme-selector';
 import { useScholarData } from '@/hooks/useScholarData';
 import { exportCalendar } from '@/lib/calendar';
 import { buildAssignment, syncStatusWithProgress } from '@/lib/planning';
@@ -79,7 +82,6 @@ type TabKey =
   | 'assignments'
   | 'planner'
   | 'calendar'
-  | 'ai'
   | 'archive'
   | 'settings';
 
@@ -92,7 +94,6 @@ const tabs: Array<{
   { key: 'assignments', label: 'Assignments', icon: FolderKanban },
   { key: 'planner', label: 'Week Planner', icon: CalendarRange },
   { key: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { key: 'ai', label: 'AI Import', icon: Bot },
   { key: 'archive', label: 'Archive', icon: Archive },
   { key: 'settings', label: 'Settings', icon: Settings2 },
 ];
@@ -123,12 +124,6 @@ const tourSteps: TourStep[] = [
     description: 'Drag tasks into days so your workload is spread out instead of stacked late.',
   },
   {
-    id: 'ai',
-    selector: '[data-tour="ai"]',
-    title: 'Use AI when helpful',
-    description: 'Upload a PDF or screenshot and review the extracted tasks before importing them.',
-  },
-  {
     id: 'settings',
     selector: '[data-tour="settings"]',
     title: 'Finish setup',
@@ -141,15 +136,17 @@ const tourTabMap: Partial<Record<TourStep['id'], TabKey>> = {
   assignments: 'assignments',
   planner: 'planner',
   calendar: 'calendar',
-  ai: 'ai',
   settings: 'settings',
 };
 
 export default function App() {
   const { data, commit } = useScholarData();
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
+  const [assignmentChoiceDialogOpen, setAssignmentChoiceDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [checkpointDialogOpen, setCheckpointDialogOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [currentAssignmentId, setCurrentAssignmentId] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   const [assignmentSearch, setAssignmentSearch] = useState('');
   const deferredSearch = useDeferredValue(assignmentSearch);
@@ -228,10 +225,15 @@ export default function App() {
 
   function openNewAssignment() {
     setEditingAssignment(null);
+    setAssignmentChoiceDialogOpen(true);
+  }
+
+  function openEditAssignment(assignment: Assignment) {
+    setEditingAssignment(assignment);
     setAssignmentDialogOpen(true);
   }
 
-  function handleSaveAssignment(values: AssignmentFormValues) {
+  function handleManualAssignment(values: AssignmentFormValues) {
     if (editingAssignment) {
       commit((draft) => {
         const index = draft.assignments.findIndex((assignment) => assignment.id === editingAssignment.id);
@@ -302,6 +304,10 @@ export default function App() {
     }
 
     setEditingAssignment(null);
+  }
+
+  function handleSaveAssignment(values: AssignmentFormValues) {
+    handleManualAssignment(values);
     setAssignmentDialogOpen(false);
   }
 
@@ -358,6 +364,39 @@ export default function App() {
       });
       toast.success('Checkpoint completed.');
     }
+  }
+
+  function handleAddCheckpoint(assignmentId: string) {
+    setCurrentAssignmentId(assignmentId);
+    setCheckpointDialogOpen(true);
+  }
+
+  function handleCreateCheckpoint(values: CheckpointFormValues) {
+    if (!currentAssignmentId) {
+      return;
+    }
+
+    commit((draft) => {
+      const assignment = draft.assignments.find((item) => item.id === currentAssignmentId);
+      if (!assignment) {
+        return;
+      }
+
+      const newCheckpoint = {
+        id: `checkpoint_${Math.random().toString(36).slice(2, 10)}`,
+        title: values.title,
+        dueDate: values.dueDate,
+        completed: false,
+        completedAt: undefined,
+      };
+
+      assignment.checkpoints.push(newCheckpoint);
+      assignment.updatedAt = new Date().toISOString();
+    });
+
+    toast.success('Checkpoint added.');
+    setCheckpointDialogOpen(false);
+    setCurrentAssignmentId(null);
   }
 
   function handleStatusChange(assignmentId: string, status: AssignmentStatus) {
@@ -511,28 +550,25 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
         >
-          <header className="rounded-[1.75rem] border border-white/40 bg-white/72 px-5 py-4 shadow-[0_18px_48px_rgba(22,23,19,0.10)] backdrop-blur-md dark:border-white/10 dark:bg-white/6">
+          <header className="rounded-[1.75rem] border bg-card/72 px-5 py-4 shadow-[0_18px_48px_rgba(22,23,19,0.10)] backdrop-blur-md">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div data-tour="brand">
-                <p className="text-xs uppercase tracking-[0.3em] text-ink-400 dark:text-ink-200/55">
+                <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                   ScholarFlow
                 </p>
-                <h1 className="mt-2 font-display text-3xl text-ink-800 sm:text-[2.4rem] dark:text-ink-50">
+                <h1 className="mt-2 font-display text-3xl text-foreground sm:text-[2.4rem]">
                   Stay on top of schoolwork.
                 </h1>
-                <p className="mt-2 text-sm text-ink-500 dark:text-ink-200/70">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {dueTodayAssignments.length} due today · {overdueAssignments.length} overdue · {streak}-day streak
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-ink-200/80 px-3 py-2 text-sm font-medium text-ink-500 dark:border-white/10 dark:text-ink-200/70">
-                  {data.settings.profile.name}
-                </span>
                 <button
                   type="button"
                   onClick={openNewAssignment}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-ink-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-700 dark:bg-ink-50 dark:text-ink-800"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4" />
                   New assignment
@@ -541,7 +577,7 @@ export default function App() {
             </div>
           </header>
 
-          <div className="rounded-[1.5rem] border border-white/35 bg-white/70 p-2 shadow-[0_12px_32px_rgba(22,23,19,0.08)] backdrop-blur-md dark:border-white/10 dark:bg-white/6">
+          <div className="rounded-[1.5rem] border bg-card/70 p-2 shadow-[0_12px_32px_rgba(22,23,19,0.08)] backdrop-blur-md">
             <nav className="flex gap-2 overflow-x-auto">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -555,8 +591,8 @@ export default function App() {
                     className={cn(
                       'inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition',
                       isActive
-                        ? 'bg-ink-800 text-white dark:bg-ink-50 dark:text-ink-900'
-                        : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800 dark:text-ink-200/70 dark:hover:bg-white/8 dark:hover:text-ink-50',
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -610,17 +646,17 @@ export default function App() {
                         <Surface className="p-5">
                           <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-xs uppercase tracking-[0.24em] text-ink-400 dark:text-ink-200/50">
+                              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                                 Today
                               </p>
-                              <h2 className="mt-1 font-display text-3xl text-ink-800 dark:text-ink-50">
+                              <h2 className="mt-1 font-display text-3xl text-foreground">
                                 What needs attention now
                               </h2>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleTabChange('assignments')}
-                              className="rounded-full border border-ink-200/80 px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-white/10 dark:text-ink-50"
+                              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"
                             >
                               Open assignments
                             </button>
@@ -628,7 +664,7 @@ export default function App() {
 
                           <div className="space-y-3">
                             {dueTodayAssignments.length === 0 && todayCheckpoints.length === 0 ? (
-                              <div className="rounded-[1.4rem] border border-dashed border-ink-300/80 bg-ink-50/70 px-4 py-5 text-sm text-ink-500 dark:border-white/10 dark:bg-white/4 dark:text-ink-200/70">
+                              <div className="rounded-[1.4rem] border border-dashed border-ink-300/80 bg-ink-50/70 px-4 py-5 text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/70 dark:text-ink-300">
                                 Nothing urgent today.
                               </div>
                             ) : null}
@@ -656,17 +692,17 @@ export default function App() {
                         <Surface className="p-5">
                           <div className="mb-4 flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-xs uppercase tracking-[0.24em] text-ink-400 dark:text-ink-200/50">
+                              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                                 Up next
                               </p>
-                              <h2 className="mt-1 font-display text-3xl text-ink-800 dark:text-ink-50">
+                              <h2 className="mt-1 font-display text-3xl text-foreground">
                                 Next deadlines
                               </h2>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleTabChange('planner')}
-                              className="rounded-full border border-ink-200/80 px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-white/10 dark:text-ink-50"
+                              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"
                             >
                               Plan week
                             </button>
@@ -692,28 +728,28 @@ export default function App() {
                       <Surface className="p-5">
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                           <div>
-                            <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                            <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                               Assignments
                             </p>
                             <h2 className="font-display text-3xl text-ink-800 dark:text-ink-50">
-                              Everything in one list
+                              Your Assignments
                             </h2>
                           </div>
 
                           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <label className="relative min-w-[220px]">
-                              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400 dark:text-ink-200/50" />
+                              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400 dark:text-ink-300" />
                               <input
                                 value={assignmentSearch}
                                 onChange={(event) => setAssignmentSearch(event.target.value)}
                                 placeholder="Search assignments"
-                                className="w-full rounded-full border border-ink-200/80 bg-white/80 py-3 pl-10 pr-4 text-sm text-ink-700 outline-none transition focus:border-sage-500 dark:border-white/10 dark:bg-ink-900/70 dark:text-ink-50"
+                                className="w-full rounded-full border border-ink-200/80 bg-white/80 py-3 pl-10 pr-8 text-sm text-ink-700 outline-none transition focus:border-sage-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50"
                               />
                             </label>
                             <select
                               value={statusFilter}
                               onChange={(event) => setStatusFilter(event.target.value as 'all' | AssignmentStatus)}
-                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 text-sm text-ink-700 outline-none transition focus:border-sage-500 dark:border-white/10 dark:bg-ink-900/70 dark:text-ink-50"
+                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 pr-10 text-sm text-ink-700 outline-none appearance-none transition focus:border-sage-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50"
                             >
                               <option value="all">All statuses</option>
                               <option value="not_started">Not Started</option>
@@ -724,7 +760,7 @@ export default function App() {
                             <select
                               value={priorityFilter}
                               onChange={(event) => setPriorityFilter(event.target.value as 'all' | Priority)}
-                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 text-sm text-ink-700 outline-none transition focus:border-sage-500 dark:border-white/10 dark:bg-ink-900/70 dark:text-ink-50"
+                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 pr-10 text-sm text-ink-700 outline-none appearance-none transition focus:border-sage-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50"
                             >
                               <option value="all">All priorities</option>
                               <option value="high">High priority</option>
@@ -734,7 +770,7 @@ export default function App() {
                             <select
                               value={subjectFilter}
                               onChange={(event) => setSubjectFilter(event.target.value)}
-                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 text-sm text-ink-700 outline-none transition focus:border-sage-500 dark:border-white/10 dark:bg-ink-900/70 dark:text-ink-50"
+                              className="rounded-full border border-ink-200/80 bg-white/80 px-4 py-3 pr-10 text-sm text-ink-700 outline-none appearance-none transition focus:border-sage-500 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50"
                             >
                               <option value="all">All subjects</option>
                               {subjects.map((subject) => (
@@ -761,12 +797,12 @@ export default function App() {
                               key={assignment.id}
                               assignment={assignment}
                               onEdit={(item) => {
-                                setEditingAssignment(item);
-                                setAssignmentDialogOpen(true);
+                                openEditAssignment(item);
                               }}
                               onArchiveToggle={handleArchiveToggle}
                               onStatusChange={handleStatusChange}
                               onToggleCheckpoint={handleToggleCheckpoint}
+                              onAddCheckpoint={handleAddCheckpoint}
                             />
                           ))
                         )}
@@ -779,7 +815,7 @@ export default function App() {
                       <Surface className="p-5">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                           <div>
-                            <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                            <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                               Planner
                             </p>
                             <h2 className="font-display text-3xl text-ink-800 dark:text-ink-50">
@@ -789,7 +825,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => exportCalendar(activeAssignments, data.planner)}
-                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-white/10 dark:text-ink-50"
+                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 bg-white/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-ink-700 dark:bg-ink-900/70 dark:text-ink-50"
                           >
                             <Download className="h-4 w-4" />
                             Export calendar
@@ -831,54 +867,10 @@ export default function App() {
                     </div>
                   ) : null}
 
-                  {activeTab === 'ai' ? (
-                    <div className="space-y-4" data-tour="ai">
-                      <AIImportPanel settings={data.settings} onImport={handleImportAssignments} />
-                      <Surface className="p-5">
-                        <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
-                          Import history
-                        </p>
-                        <h3 className="mt-2 font-display text-2xl text-ink-800 dark:text-ink-50">
-                          Recent imports
-                        </h3>
-                        <div className="mt-4 space-y-3">
-                          {data.imports.length === 0 ? (
-                            <p className="text-sm text-ink-500 dark:text-ink-200/70">
-                              No AI imports yet. Upload a task sheet to create your first one.
-                            </p>
-                          ) : (
-                            data.imports.slice(0, 5).map((record) => (
-                              <div
-                                key={record.id}
-                                className="rounded-[1.4rem] border border-ink-200/70 bg-ink-50/70 px-4 py-3 dark:border-white/10 dark:bg-ink-900/40"
-                              >
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                  <div>
-                                    <div className="font-semibold text-ink-800 dark:text-ink-50">
-                                      {record.fileName}
-                                    </div>
-                                    <div className="text-sm text-ink-500 dark:text-ink-200/70">
-                                      Imported {record.assignmentCount} assignment
-                                      {record.assignmentCount === 1 ? '' : 's'} on{' '}
-                                      {format(parseISO(record.importedAt), 'd MMM yyyy')}
-                                    </div>
-                                  </div>
-                                  <span className="rounded-full bg-sage-500/15 px-3 py-1 text-xs font-semibold text-sage-700 ring-1 ring-sage-500/20 dark:text-sage-300">
-                                    Success
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </Surface>
-                    </div>
-                  ) : null}
-
                   {activeTab === 'archive' ? (
                     <div className="space-y-4" data-tour="archive">
                       <Surface className="p-5">
-                        <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                        <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                           Archive
                         </p>
                         <h2 className="font-display text-3xl text-ink-800 dark:text-ink-50">
@@ -899,8 +891,7 @@ export default function App() {
                               assignment={assignment}
                               archived
                               onEdit={(item) => {
-                                setEditingAssignment(item);
-                                setAssignmentDialogOpen(true);
+                                openEditAssignment(item);
                               }}
                               onArchiveToggle={handleArchiveToggle}
                               onStatusChange={handleStatusChange}
@@ -916,84 +907,18 @@ export default function App() {
                     <div className="space-y-4" data-tour="settings">
                       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
                         <Surface className="p-5">
-                          <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
-                            Profile
+                          <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
+                            Themes
                           </p>
                           <h2 className="mt-2 font-display text-3xl text-ink-800 dark:text-ink-50">
-                            Personal settings
+                            Choose your theme
                           </h2>
 
-                          <div className="mt-6 grid gap-4 md:grid-cols-2">
-                            <SettingsField label="Name">
-                              <input
-                                value={data.settings.profile.name}
-                                onChange={(event) =>
-                                  updateSettings((settings) => {
-                                    settings.profile.name = event.target.value;
-                                  })
-                                }
-                                className={settingsInputClass}
-                              />
-                            </SettingsField>
-                            <SettingsField label="Term start date">
-                              <input
-                                type="date"
-                                value={data.settings.profile.termStartDate}
-                                onChange={(event) =>
-                                  updateSettings((settings) => {
-                                    settings.profile.termStartDate = event.target.value;
-                                  })
-                                }
-                                className={settingsInputClass}
-                              />
-                            </SettingsField>
-                          </div>
-
-                          <div className="mt-4">
-                            <SettingsField label="Study focus">
-                              <textarea
-                                rows={4}
-                                value={data.settings.profile.studyFocus}
-                                onChange={(event) =>
-                                  updateSettings((settings) => {
-                                    settings.profile.studyFocus = event.target.value;
-                                  })
-                                }
-                                className={settingsInputClass}
-                              />
-                            </SettingsField>
-                          </div>
-
-                          <div className="mt-6">
-                            <div className="mb-2 text-sm font-semibold text-ink-700 dark:text-ink-50">
-                              Theme
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {(['light', 'dark', 'system'] as ThemeMode[]).map((theme) => (
-                                <button
-                                  key={theme}
-                                  type="button"
-                                  onClick={() =>
-                                    updateSettings((settings) => {
-                                      settings.theme = theme;
-                                    })
-                                  }
-                                  className={cn(
-                                    'rounded-full px-4 py-2 text-sm font-semibold transition',
-                                    data.settings.theme === theme
-                                      ? 'bg-ink-800 text-white dark:bg-ink-50 dark:text-ink-900'
-                                      : 'border border-ink-200/80 text-ink-700 hover:border-ink-500 dark:border-white/10 dark:text-ink-50',
-                                  )}
-                                >
-                                  {theme[0].toUpperCase() + theme.slice(1)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                          <ThemeSelector />
                         </Surface>
 
                         <Surface className="p-5">
-                          <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                          <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                             Groq
                           </p>
                           <h3 className="mt-2 font-display text-2xl text-ink-800 dark:text-ink-50">
@@ -1035,7 +960,7 @@ export default function App() {
                       </section>
 
                       <Surface className="p-5">
-                        <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-200/50">
+                        <p className="text-xs uppercase tracking-[0.28em] text-ink-400 dark:text-ink-300">
                           Data controls
                         </p>
                         <h3 className="mt-2 font-display text-3xl text-ink-800 dark:text-ink-50">
@@ -1045,7 +970,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={handleExportData}
-                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-white/10 dark:text-ink-50"
+                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-ink-700 dark:text-ink-50"
                           >
                             <Download className="h-4 w-4" />
                             Export data JSON
@@ -1058,7 +983,7 @@ export default function App() {
                                 settings.onboardingComplete = false;
                               });
                             }}
-                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-white/10 dark:text-ink-50"
+                            className="inline-flex items-center gap-2 rounded-full border border-ink-200/80 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-500 hover:text-ink-800 dark:border-ink-700 dark:text-ink-50"
                           >
                             <Sparkles className="h-4 w-4" />
                             Replay onboarding
@@ -1092,6 +1017,20 @@ export default function App() {
         onSubmit={handleSaveAssignment}
       />
 
+      <AssignmentChoiceDialog
+        open={assignmentChoiceDialogOpen}
+        onOpenChange={setAssignmentChoiceDialogOpen}
+        settings={data.settings}
+        onManualAssignment={handleManualAssignment}
+        onAIImport={handleImportAssignments}
+      />
+
+      <CheckpointDialog
+        open={checkpointDialogOpen}
+        onOpenChange={setCheckpointDialogOpen}
+        onSubmit={handleCreateCheckpoint}
+      />
+
       <TourOverlay
         open={tourOpen}
         steps={tourSteps}
@@ -1116,7 +1055,7 @@ function Surface(props: {
   return (
     <section
       className={cn(
-        'rounded-[2rem] border border-white/35 bg-white/70 shadow-[0_18px_60px_rgba(22,23,19,0.10)] backdrop-blur-md dark:border-white/10 dark:bg-white/6',
+        'rounded-[2rem] border bg-card shadow-[0_18px_60px_rgba(22,23,19,0.10)] backdrop-blur-md',
         props.className,
       )}
     >
@@ -1133,7 +1072,7 @@ function MetricCard(props: {
 }) {
   const accentClass = {
     coral: 'from-coral-500/16 to-coral-500/5 text-coral-600 dark:text-coral-400',
-    gold: 'from-gold-400/18 to-gold-400/5 text-ink-700 dark:text-gold-300',
+    gold: 'from-gold-400/18 to-gold-400/5 text-foreground dark:text-gold-300',
     sage: 'from-sage-500/16 to-sage-500/5 text-sage-700 dark:text-sage-300',
     sky: 'from-sky-400/16 to-sky-400/5 text-sky-400',
   }[props.accent];
@@ -1155,18 +1094,18 @@ function TaskRow(props: {
 }) {
   const toneClass = {
     coral: 'bg-coral-500/10 text-coral-600 dark:text-coral-400',
-    gold: 'bg-gold-400/10 text-ink-700 dark:text-gold-300',
+    gold: 'bg-gold-400/10 text-foreground dark:text-gold-300',
     sage: 'bg-sage-500/10 text-sage-700 dark:text-sage-300',
   }[props.tone];
 
   return (
-    <div className="rounded-[1.2rem] border border-ink-200/70 bg-ink-50/75 px-4 py-3 dark:border-white/10 dark:bg-white/4">
+    <div className="rounded-[1.2rem] border border-ink-200/70 bg-ink-50/75 px-4 py-3 dark:border-ink-700 dark:bg-ink-800">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-ink-800 dark:text-ink-50">
+          <div className="truncate text-sm font-semibold text-foreground">
             {props.title}
           </div>
-          <div className="mt-1 text-xs text-ink-500 dark:text-ink-200/70">{props.meta}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{props.meta}</div>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${toneClass}`}>
           {props.tone}
@@ -1185,7 +1124,7 @@ function EmptyState(props: {
   return (
     <Surface className="p-10 text-center">
       <h3 className="font-display text-3xl text-ink-800 dark:text-ink-50">{props.title}</h3>
-      <p className="mx-auto mt-3 max-w-xl text-sm text-ink-500 dark:text-ink-200/70">
+      <p className="mx-auto mt-3 max-w-xl text-sm text-ink-500 dark:text-ink-300">
         {props.description}
       </p>
       {props.actionLabel && props.onAction ? (
@@ -1214,4 +1153,4 @@ function SettingsField(props: {
 }
 
 const settingsInputClass =
-  'w-full rounded-2xl border border-ink-200/80 bg-white/80 px-4 py-3 text-sm text-ink-700 outline-none transition focus:border-sage-500 focus:ring-2 focus:ring-sage-500/20 dark:border-white/10 dark:bg-ink-900/70 dark:text-ink-50';
+  'w-full rounded-2xl border border-ink-200/80 bg-white/80 px-4 py-3 text-sm text-ink-700 outline-none transition focus:border-sage-500 focus:ring-2 focus:ring-sage-500/20 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50';
