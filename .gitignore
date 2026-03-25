@@ -32,8 +32,8 @@ vite.config.d.ts
 
 .env
 
-.agents/
-.agent/
-.claude
-.qwen
-.windsurf
+agents/
+agent/
+claude
+qwen
+windsurf
